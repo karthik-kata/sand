@@ -13,16 +13,24 @@ void main() {
   runApp(GameWidget(game: SandGame()));
 }
 
+extension Multiplication on Velocity{
+  Velocity operator*(double d){
+    return Velocity(pixelsPerSecond: pixelsPerSecond*0.5);
+
+  }
+}
+
 //Game
 class SandGame extends FlameGame with HasCollisionDetection{
+  
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+   
 
     add(ScreenHitbox());
-    add(Side());
 
-    for(int i = 0; i<=1;i++){
+    for(int i = 0; i<=2;i++){
       add(Sand());
     }
    
@@ -33,7 +41,7 @@ class SandGame extends FlameGame with HasCollisionDetection{
 }
 
 //WIP
-class Side extends PositionComponent with HasCollisionDetection{
+class Side extends PositionComponent{
   Side() : super(
     anchor: Anchor.topLeft);
 
@@ -56,6 +64,7 @@ class Side extends PositionComponent with HasCollisionDetection{
 class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallbacks, CollisionCallbacks {
 
   var velocity =  Velocity.zero;
+  var isHit = false;
 
   Sand() : super(
     anchor: Anchor.center
@@ -67,11 +76,12 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
 
     sprite = await game.loadSprite('sand.png');
 
-    var randomDouble = Random().nextDouble() * 500 +100;
+    final randomDoubleX = Random().nextDouble() * 500 +100;
+    final randomDoubleY = Random().nextDouble() * 500 +100;
 
-    position = Vector2(randomDouble, randomDouble);
+    position = Vector2(randomDoubleX, randomDoubleY);
     size = Vector2(100, 100);
-    add(CircleHitbox(isSolid: true));
+    add(RectangleHitbox(isSolid: true));
 
   }
 
@@ -99,34 +109,43 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
   }
 
   @override
-  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other){
-    super.onCollisionStart(intersectionPoints, other);
+  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other){
+    super.onCollision(intersectionPoints, other);
 
-    if (other is Sand){
-      other.velocity += velocity;
-      velocity = Velocity.zero;
+    if (other is Sand && !other.isHit){
+      other.isHit = true;
+      isHit = true;
+      other.velocity += velocity*0.90;
+      velocity -= velocity*0.90; 
     }
 
-    else if (other is ScreenHitbox || other is Side) {
+    else if (other is ScreenHitbox) {
       final firstPoint = intersectionPoints.first;
 
-      final dx = velocity.pixelsPerSecond.dx * 0.5 ;
-      final dy = velocity.pixelsPerSecond.dy * 0.5 ;
+      final dx = velocity.pixelsPerSecond.dx * 0.5  ;
+      final dy = velocity.pixelsPerSecond.dy * 0.5  ;
 
       if (firstPoint.x == 0) {
         // Left wall (or one of the leftmost corners)
-        velocity = Velocity(pixelsPerSecond: Offset(-dx, dy)) ;
+        velocity = Velocity(pixelsPerSecond: Offset(-dx+50, dy)) ;
       } else if (firstPoint.y == 0) {
         // Top wall (or one of the upper corners)
-        velocity = Velocity(pixelsPerSecond: Offset(dx, -dy));
+        velocity = Velocity(pixelsPerSecond: Offset(dx, -dy+50));
       } else if (firstPoint.x == game.size.x) {
         // Right wall (or one of the rightmost corners)
-        velocity = Velocity(pixelsPerSecond: Offset(-dx, dy));
+        velocity = Velocity(pixelsPerSecond: Offset(-dx-50, dy));
       } else if (firstPoint.y == game.size.y) {
         // Bottom wall (or one of the bottom corners)
         velocity = Velocity(pixelsPerSecond: Offset(dx, -dy));
       }
     }
+  }
+
+  @override 
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+    isHit = false;
+
   }
 
   
@@ -135,8 +154,12 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
   @override
   void update(double dt){
     super.update(dt);
+
+    
     position.add(velocity.pixelsPerSecond.toVector2().scaled(dt));
 
+    
+    
     //Drag
     const stopOffset = 0.001;
     var x = velocity.pixelsPerSecond.dx + stopOffset;
@@ -158,27 +181,34 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     //Gravity
     velocity += gravity;
 
+    //Resettig isHit every update cycle just in case
+    isHit = false;
+
+
+
 
     //Return to playing field
+  
+      if (position.x <= -game.size.x * 0.1) {
+      // Left wall (or one of the leftmost corners)
+      velocity += Velocity(pixelsPerSecond: Offset(150, 0)) ;
+    } else if (position.y <= -game.size.y * 0.1) {
+      // Top wall (or one of the upper corners)
+      velocity += Velocity(pixelsPerSecond: Offset(0, 150));
+    } else if (position.x >= game.size.x*1.1) {
+      // Right wall (or one of the rightmost corners)
+      velocity += Velocity(pixelsPerSecond: Offset(-150, 0));
+    } else if (position.y >= game.size.y * 1.1) {
+      // Bottom wall (or one of the bottom corners)
+      velocity += Velocity(pixelsPerSecond: Offset(0, -150));
+    }   
 
-       if (position.x <= 0) {
-        // Left wall (or one of the leftmost corners)
-        velocity += Velocity(pixelsPerSecond: Offset(150, 0)) ;
-      } else if (position.y <= 0) {
-        // Top wall (or one of the upper corners)
-        velocity += Velocity(pixelsPerSecond: Offset(0, -150));
-      } else if (position.x >= game.size.x) {
-        // Right wall (or one of the rightmost corners)
-        velocity += Velocity(pixelsPerSecond: Offset(-150, 0));
-      } else if (position.y >= game.size.y) {
-        // Bottom wall (or one of the bottom corners)
-        velocity += Velocity(pixelsPerSecond: Offset(0, -150));
-      }
-      
 
 
 
   }
+
+  
 
 
 }
