@@ -20,6 +20,8 @@ extension Multiplication on Velocity{
   }
 }
 
+
+
 //Game
 class SandGame extends FlameGame with HasCollisionDetection{
   
@@ -40,34 +42,14 @@ class SandGame extends FlameGame with HasCollisionDetection{
 
 }
 
-//WIP
-class Side extends PositionComponent{
-  Side() : super(
-    anchor: Anchor.topLeft);
-
-    @override
-    Future<void> onLoad() async {
-    super.onLoad();
-
-    var randomDouble = Random().nextDouble() * 500 +100;
-
-    position = Vector2(randomDouble, randomDouble);
-    size = Vector2(0, 0);
-    add(RectangleHitbox(isSolid: true, position: Vector2(size.x, 1000), size: Vector2(1000, 150)));
-    }
-
-      
-
-}
-
 //Sand Element
 class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallbacks, CollisionCallbacks {
 
   var velocity =  Velocity.zero;
-  var isHit = false;
+  List<Sand> hitBy = [];
 
   Sand() : super(
-    anchor: Anchor.center
+    anchor: Anchor.topLeft
   );
 
   @override
@@ -75,13 +57,16 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     super.onLoad();
 
     sprite = await game.loadSprite('sand.png');
-
     final randomDoubleX = Random().nextDouble() * 500 +100;
     final randomDoubleY = Random().nextDouble() * 500 +100;
 
     position = Vector2(randomDoubleX, randomDoubleY);
-    size = Vector2(100, 100);
-    add(RectangleHitbox(isSolid: true));
+    size = Vector2(50, 50);
+    var hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
+
+    add(hitbox);
+
+    //debugMode = true;
 
   }
 
@@ -95,7 +80,6 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    //velocity += Velocity(pixelsPerSecond: event.localDelta.toOffset()*10);
     position += event.localDelta;
     velocity = Velocity.zero;
 
@@ -109,56 +93,141 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
   }
 
   @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other){
+    super.onCollisionStart(intersectionPoints, other);
+
+    if (other is Sand && (!hitBy.contains(other) || !other.hitBy.contains(this)) ){
+      other.hitBy.add(this);
+      hitBy.add(this);
+
+      var velocitySum = velocity + other.velocity;
+      velocitySum = velocitySum * 0.5;
+
+      velocity = velocitySum;
+      other.velocity = velocitySum;
+
+ 
+    }
+
+  }
+
+  @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other){
     super.onCollision(intersectionPoints, other);
 
-    if (other is Sand && !other.isHit){
-      other.isHit = true;
-      isHit = true;
-      other.velocity += velocity*0.90;
-      velocity -= velocity*0.90; 
-    }
-
-    else if (other is ScreenHitbox) {
+     if (other is ScreenHitbox) {
       final firstPoint = intersectionPoints.first;
 
-      final dx = velocity.pixelsPerSecond.dx * 0.5  ;
-      final dy = velocity.pixelsPerSecond.dy * 0.5  ;
+      final dx = velocity.pixelsPerSecond.dx * 1  ;
+      final dy = velocity.pixelsPerSecond.dy * 1  ;
+      const velocityOffset = 0;
 
-      if (firstPoint.x == 0) {
-        // Left wall (or one of the leftmost corners)
-        velocity = Velocity(pixelsPerSecond: Offset(-dx+50, dy)) ;
+        if (firstPoint.x == 0 && firstPoint.y ==0) {
+        // Top Left Corner
+        velocity = Velocity(pixelsPerSecond: Offset(-dx+velocityOffset, -dy)) ;
+      } else if ( firstPoint.x ==game.size.x && firstPoint.y == 0) {
+        // Top Right Corner 
+        velocity = Velocity(pixelsPerSecond: Offset(-dx, -dy+velocityOffset));
+      } else if (firstPoint.x == 0 && firstPoint.y == game.size.y) {
+        // Bottom Left Corner
+        velocity = Velocity(pixelsPerSecond: Offset(-dx-velocityOffset, -dy));
+      } else if (firstPoint.x == game.size.x && firstPoint.y == game.size.y) {
+        // Bottom Right Corner 
+        velocity = Velocity(pixelsPerSecond: Offset(-dx, -dy));
+      }
+      else if (firstPoint.x == 0) {
+        // Left wall 
+        velocity = Velocity(pixelsPerSecond: Offset(-dx, dy)) ;
       } else if (firstPoint.y == 0) {
-        // Top wall (or one of the upper corners)
-        velocity = Velocity(pixelsPerSecond: Offset(dx, -dy+50));
+        // Top wall 
+        velocity = Velocity(pixelsPerSecond: Offset(dx, -dy));
       } else if (firstPoint.x == game.size.x) {
-        // Right wall (or one of the rightmost corners)
-        velocity = Velocity(pixelsPerSecond: Offset(-dx-50, dy));
+        // Right wall
+        velocity = Velocity(pixelsPerSecond: Offset(-dx, dy));
       } else if (firstPoint.y == game.size.y) {
-        // Bottom wall (or one of the bottom corners)
+        // Bottom wall
         velocity = Velocity(pixelsPerSecond: Offset(dx, -dy));
       }
+
+
+     
+
     }
+
+
   }
 
   @override 
   void onCollisionEnd(PositionComponent other) {
     super.onCollisionEnd(other);
-    isHit = false;
+
+    if(other is Sand && (hitBy.contains(other) || other.hitBy.contains(this))){
+      hitBy.remove(other);
+    }
+
 
   }
 
+
+
   
-  static const gravity = Velocity(pixelsPerSecond: Offset(0, 20));
+  //static const gravity = Velocity(pixelsPerSecond: Offset(0, 20));
+
+  static const gravity = Offset(0, 500);
 
   @override
   void update(double dt){
     super.update(dt);
-
     
-    position.add(velocity.pixelsPerSecond.toVector2().scaled(dt));
+//    position.add(velocity.pixelsPerSecond.toVector2().scaled(dt));
 
-    
+    var positionx = velocity.pixelsPerSecond.toVector2().scaled(dt).x;
+    var positiony = velocity.pixelsPerSecond.toVector2().scaled(dt).y;
+
+    position.add(Vector2(positionx, positiony));
+
+    position.clamp(Vector2(0, 0), Vector2(game.size.x - this.size.x , game.size.y - this.size.y));
+
+    //DO IT FOR CORNERS
+    try{
+    for(PositionComponent other in activeCollisions){
+      if(other is Sand){
+      final diffOfX = (other.position.x - position.x);
+      final diffOfY = (other.position.y - position.y); 
+
+      if(diffOfX.abs() > diffOfY.abs() && diffOfX.sign == -1){
+        //this object x > other object x, therefore RIGHT OF OTHER
+        position.clamp(Vector2(other.position.x + other.size.x, 0 ), Vector2(game.size.x - this.size.x , game.size.y - this.size.y));
+        other.position.clamp(Vector2(0, 0 ), Vector2(this.position.x, game.size.y - this.size.y));
+      }
+      else if(diffOfX.abs() > diffOfY.abs() && diffOfX.sign == 1){
+        //this object x > other object x, therefore LEFT OF OTHER
+        position.clamp(Vector2(0, 0 ), Vector2(other.position.x, game.size.y - this.size.y));
+        other.position.clamp(Vector2(this.position.x + this.size.x, 0 ), Vector2(game.size.x - other.size.x , game.size.y - other.size.y));
+
+      }
+      else if(diffOfX.abs() < diffOfY.abs() && diffOfY.sign == -1){
+        //this object y > other object y, therefore BELOW OTHER
+        position.clamp(Vector2(0, other.position.y ), Vector2(game.size.x - this.size.x, game.size.y - this.size.y));
+        other.position.clamp(Vector2(0, 0 ), Vector2(game.size.x - other.size.x, this.position.y));
+
+
+      }
+
+      else if(diffOfX.abs() < diffOfY.abs() && diffOfY.sign == 1){
+        //this object y < other object y, therefore ABOVE OTHER
+        position.clamp(Vector2(0, 0 ), Vector2(game.size.x - this.size.x, other.position.y));
+        other.position.clamp(Vector2(0, this.position.y ), Vector2(game.size.x - other.size.x, game.size.y - other.size.y));
+
+
+      }
+
+      }
+    }
+    }
+    catch(exceptions){
+      print(exceptions);
+    }
     
     //Drag
     const stopOffset = 0.001;
@@ -169,40 +238,39 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     y = y*y * y.sign * -1 * 0.0001;
 
 
-    var dv = Velocity(pixelsPerSecond: Offset(x,y));
+    //var dragVelocity = Velocity(pixelsPerSecond: Offset(x,y));
+
+    var dragAccel = Offset(x, y)*50;
 
     if((x.abs() <= 0.005 ) && (y.abs() <= 0.005)) {
-      velocity = Velocity.zero;
+      //velocity = Velocity.zero;
     }
     else{
-      velocity +=  dv;
+      //velocity +=  Velocity(pixelsPerSecond: dragAccel*dt);
     }
   
     //Gravity
-    velocity += gravity;
-
-    //Resettig isHit every update cycle just in case
-    isHit = false;
+    //velocity += Velocity(pixelsPerSecond: gravity*dt);
 
 
 
-
+    /*
     //Return to playing field
   
       if (position.x <= -game.size.x * 0.1) {
       // Left wall (or one of the leftmost corners)
-      velocity += Velocity(pixelsPerSecond: Offset(150, 0)) ;
+      velocity += const Velocity(pixelsPerSecond: Offset(150, 0)) ;
     } else if (position.y <= -game.size.y * 0.1) {
       // Top wall (or one of the upper corners)
-      velocity += Velocity(pixelsPerSecond: Offset(0, 150));
+      velocity += const Velocity(pixelsPerSecond: Offset(0, 150));
     } else if (position.x >= game.size.x*1.1) {
       // Right wall (or one of the rightmost corners)
-      velocity += Velocity(pixelsPerSecond: Offset(-150, 0));
+      velocity += const Velocity(pixelsPerSecond: Offset(-150, 0));
     } else if (position.y >= game.size.y * 1.1) {
       // Bottom wall (or one of the bottom corners)
-      velocity += Velocity(pixelsPerSecond: Offset(0, -150));
+      velocity += const Velocity(pixelsPerSecond: Offset(0, -150));
     }   
-
+  */
 
 
 
