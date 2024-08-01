@@ -2,31 +2,30 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:sand_v1/main.dart';
 import 'dart:math';
+import 'sand_game.dart';
 
 
 //Sand Element
-class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallbacks, CollisionCallbacks {
+class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallbacks, CollisionCallbacks, TapCallbacks {
 
   var velocity =  Vector2.zero();
   List<Sand> hitBy = [];
 
   Sand() : super(
     anchor: Anchor.topLeft
+  
   );
 
   @override
   Future<void> onLoad() async {
     super.onLoad();
-
     sprite = await game.loadSprite('sand.png');
-    final randomDoubleX = Random().nextDouble() * 500 +100;
-    final randomDoubleY = Random().nextDouble() * 500 +100;
-
-    position = Vector2(randomDoubleX, randomDoubleY);
+    final randomX = game.canvasSize.x * Random().nextDouble();
+    final randomY = game.canvasSize.y * Random().nextDouble();
+    position = Vector2(randomX, randomY);
     size = Vector2(50, 50);
-    var hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
+    final hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
 
     add(hitbox);
 
@@ -56,35 +55,22 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     
   }
 
-
-  @override
-  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other){
-    super.onCollisionStart(intersectionPoints, other);
-    
-
-  }
-
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other){
     super.onCollision(intersectionPoints, other);
 
-
     if (other is Sand && (!hitBy.contains(other) || !other.hitBy.contains(this)) ){
       other.hitBy.add(this);
       hitBy.add(other);
-
-      var velocitySum = (velocity + other.velocity).scaled(0.5);
-
+      final velocitySum = (velocity + other.velocity).scaled(0.5);
       velocity = velocitySum;
       other.velocity = velocitySum;
 
- 
     }
 
 
      if (other is ScreenHitbox) {
       final firstPoint = intersectionPoints.first;
-
       final dx = velocity.x;
       final dy = velocity.y;
 
@@ -132,7 +118,12 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
       other.hitBy.remove(this);
     }
 
+  }
 
+  @override
+  void onTapDown(TapDownEvent event) {
+    velocity = Vector2.zero();
+    super.onTapDown(event);
   }
 
 
@@ -145,8 +136,7 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     super.update(dt);
     
     position.add(velocity.scaled(dt));
-
-    position.clamp(Vector2(0, 0), Vector2(game.size.x - this.size.x , game.size.y - this.size.y));
+    position.clamp(Vector2(0, 0), Vector2(game.size.x - size.x , game.size.y - size.y));
 
     try{
       for(PositionComponent other in activeCollisions){
@@ -156,42 +146,22 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
 
           if(diffOfX.abs() > diffOfY.abs() && diffOfX.sign == -1){
             //this object x > other object x, therefore RIGHT OF OTHER
-            position.clamp(Vector2(other.position.x + other.size.x, 0 ), Vector2(game.size.x - this.size.x , game.size.y - this.size.y));
-
-            if(other.collidingWith(ScreenHitbox())){
-              velocity.x = -velocity.x;
-            }
-
+            position.clamp(Vector2(other.position.x + other.size.x, 0 ), Vector2(game.size.x - size.x , game.size.y - size.y));
           }
 
           else if(diffOfX.abs() > diffOfY.abs() && diffOfX.sign == 1){
             //this object x > other object x, therefore LEFT OF OTHER
-            position.clamp(Vector2(0, 0 ), Vector2(other.position.x - other.size.x, game.size.y - this.size.y));
-
-            if(other.collidingWith(ScreenHitbox())){
-              velocity.x = -velocity.x;
-            }
-
+            position.clamp(Vector2(0, 0 ), Vector2(other.position.x - other.size.x, game.size.y - size.y));
           }
 
           else if(diffOfX.abs() < diffOfY.abs() && diffOfY.sign == -1){
             //this object y > other object y, therefore BELOW OTHER
-            position.clamp(Vector2(0, other.position.y+other.size.y ), Vector2(game.size.x - this.size.x, game.size.y - this.size.y));
-
-            if(other.collidingWith(ScreenHitbox())){
-              velocity.y = -velocity.y;
-            }
-
+            position.clamp(Vector2(0, other.position.y+other.size.y ), Vector2(game.size.x - size.x, game.size.y - size.y));
           }
 
           else if(diffOfX.abs() < diffOfY.abs() && diffOfY.sign == 1){
             //this object y < other object y, therefore ABOVE OTHER
-            position.clamp(Vector2(0, 0 ), Vector2(game.size.x - this.size.x, other.position.y));
-
-             if(other.collidingWith(ScreenHitbox())){
-              velocity.y = -velocity.y;
-            }
-
+            position.clamp(Vector2(0, 0 ), Vector2(game.size.x - size.x, other.position.y));
           }
         }
       }
@@ -202,7 +172,7 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     
 
      //Gravity
-    //var gravity = Vector2(0, 500);
+    //final gravity = Vector2(0, 500);
     //velocity += gravity;
 
   }
