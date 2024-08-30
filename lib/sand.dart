@@ -24,7 +24,7 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     final randomX = game.canvasSize.x * Random().nextDouble();
     final randomY = game.canvasSize.y * Random().nextDouble();
     position = Vector2(randomX, randomY);
-    size = Vector2(50, 50);
+    size = Vector2(10, 10);
     final hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
 
     add(hitbox);
@@ -60,16 +60,36 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
     super.onCollision(intersectionPoints, other);
 
     if (other is Sand && (!hitBy.contains(other) || !other.hitBy.contains(this)) ){
+
+      /*
       other.hitBy.add(this);
       hitBy.add(other);
       final velocitySum = (velocity + other.velocity).scaled(0.5);
       velocity = velocitySum;
-      other.velocity = velocitySum;
+      other.velocity = velocitySum;*/
 
+      double restitutionCoefficient = 1;
+
+      final initialVelocity = velocity;
+      final initialOtherVelocity = other.velocity;
+
+
+
+      velocity = initialVelocity - (position-other.position) *  restitutionCoefficient * 0.5 * (((initialVelocity-initialOtherVelocity).dot(position-other.position))/(position-other.position).length2); 
+
+      other.velocity = initialOtherVelocity - (other.position - position) * restitutionCoefficient * 0.5 * (((initialOtherVelocity-initialVelocity).dot(other.position-position))/((other.position - position).length2));
+
+      //velocity = (initialOtherVelocity-initialVelocity)*restitutionCoefficient*0.5 + initialVelocity*0.5 + initialOtherVelocity*0.5;
+      //other.velocity = (initialVelocity - initialOtherVelocity)*restitutionCoefficient*0.5 + initialVelocity*0.5 + initialOtherVelocity*0.5;
+
+      other.hitBy.add(this);
+      hitBy.add(other);
     }
 
 
      if (other is ScreenHitbox) {
+
+      
       final firstPoint = intersectionPoints.first;
       final dx = velocity.x;
       final dy = velocity.y;
@@ -100,8 +120,6 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
         // Bottom wall
         velocity = Vector2(dx, -dy);
       }
-
-
      
 
     }

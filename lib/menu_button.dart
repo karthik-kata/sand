@@ -38,6 +38,7 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
     super.onGameResize(size);
 
     super.position = Vector2(size.x * 0.95, size.y * 0.05);
+    velocity.setZero();
   }
 
    @override
