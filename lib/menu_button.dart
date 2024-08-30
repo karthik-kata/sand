@@ -23,10 +23,20 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
 
   }){priority = 1;}
 
+//moves a component to the corner
+  void setCornerPosition(PositionComponent component, Vector2 gameSize){
+    component.position = Vector2(gameSize.x * 0.97 , gameSize.y * 0.05 );
+  }
+
    @override
-  Future<void> onLoad() async {
+  Future<void> onLoad() async  {
     super.onLoad();
-    
+
+    anchor = Anchor.center;
+
+    setCornerPosition(this, game.canvasSize);
+
+
     final hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
     add(hitbox);
 
@@ -37,7 +47,8 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
 
-    super.position = Vector2(size.x * 0.95, size.y * 0.05);
+    setCornerPosition(this, size);
+
     velocity.setZero();
   }
 
@@ -113,11 +124,18 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
   @override
   void update(double dt){
     super.update(dt);
-    
-    position.add(velocity.scaled(dt));
 
+    velocity = velocity - velocity.normalized() * velocity.length2 * 0.001 * dt; 
+
+    position.add(velocity.scaled(dt));
     position.clamp(Vector2(size.x * 0.5, size.y * 0.5), Vector2(game.size.x - size.x * 0.5 , game.size.y - size.y * 0.5));
+
+  
+    
   }
+
+
+
 
   
 }
