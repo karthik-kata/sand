@@ -34,7 +34,9 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
 
     anchor = Anchor.center;
 
-    setCornerPosition(this, game.canvasSize);
+    //setCornerPosition(this, game.canvasSize);
+
+    position.setZero();
 
 
     final hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
@@ -47,7 +49,9 @@ class MenuButton extends SpriteButtonComponent with DragCallbacks, HasGameRefere
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
 
-    setCornerPosition(this, size);
+    //setCornerPosition(this, size);
+    position.setZero();
+
 
     velocity.setZero();
   }
