@@ -13,12 +13,14 @@ class SettingsMenu extends StatefulWidget{
 
 
 class _SettingsState extends State<SettingsMenu>{
-  double numberOfBalls = 1;
+  late double numberOfSand;
+  late double sizeOfSand;
 
   @override
   void initState() {
     super.initState();
-    numberOfBalls = widget.game.getSandAmount();
+    numberOfSand = widget.game.getSandAmount();
+    sizeOfSand = widget.game.getSandSize();
 
   }
  
@@ -33,7 +35,7 @@ class _SettingsState extends State<SettingsMenu>{
       child: Center(
         child: Container(
           padding: const EdgeInsets.all(10.0),
-          height: 300,
+          height: 400,
           width: 300,
           decoration: const BoxDecoration(
             color: blackTextColor,
@@ -45,15 +47,46 @@ class _SettingsState extends State<SettingsMenu>{
             mainAxisAlignment: MainAxisAlignment.center,
             children: [ 
 
+              const Text(
+                    'Sand Count',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      color: whiteTextColor,
+                    ),
+                  ),
+
                Slider(
-                value: numberOfBalls,
+                value: numberOfSand,
                 onChanged: (double newValue){
 
                   setState(() {
-                    numberOfBalls = newValue.roundToDouble();
+                    numberOfSand = newValue.roundToDouble();
                   });
                  
                   widget.game.changeAmountOfSand(newValue.round());
+                },
+                max: 300,
+                min: 1,
+              
+                ),
+
+                const Text(
+                    'Sand Size',
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      color: whiteTextColor,
+                    ),
+                  ),
+
+               Slider(
+                value: sizeOfSand,
+                onChanged: (double newValue){
+
+                  setState(() {
+                    sizeOfSand = newValue.roundToDouble();
+                  });
+                 
+                  widget.game.changeSizeOfSand(newValue);
                 },
                 max: 100,
                 min: 1,

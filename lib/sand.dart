@@ -13,18 +13,23 @@ class Sand extends SpriteComponent with HasGameReference<SandGame>, DragCallback
   List<Sand> hitBy = [];
 
   Sand() : super(
-    anchor: Anchor.topLeft
+    size: Vector2(10,10)
   
   );
+
+  Sand.withSize(double size) : super(
+    size: Vector2(size, size)
+   );
 
   @override
   Future<void> onLoad() async {
     super.onLoad();
+    
+    anchor = Anchor.topLeft;
     sprite = await game.loadSprite('sand.png');
     final randomX = game.canvasSize.x * Random().nextDouble();
     final randomY = game.canvasSize.y * Random().nextDouble();
     position = Vector2(randomX, randomY);
-    size = Vector2(10, 10);
     final hitbox = RectangleHitbox.relative(Vector2(1,1), parentSize: size);
 
     add(hitbox);
